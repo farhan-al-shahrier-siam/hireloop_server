@@ -28,6 +28,13 @@ async function run() {
         const db = client.db("hireloop");
         const jobsCollection = db.collection("jobs");
         const companyCollection = db.collection("companies");
+        const usersCollection = db.collection("user");
+
+        app.get("/api/users", async (req, res) => {
+            const cursor = usersCollection.find().skip(2);
+            const result = await cursor.toArray();
+            res.json(result);
+        });
 
         app.get("/api/jobs", async (req, res) => {
             const query = {};
@@ -47,19 +54,25 @@ async function run() {
             const newJob = {
                 ...job,
                 createdAt: new Date(),
-            }
+            };
             const result = await jobsCollection.insertOne(newJob);
             res.json(result);
         });
 
         // Company related APIs
 
+        app.get("/api/companies", async (req, res) => {
+            const cursor = companyCollection.find();
+            const result = await cursor.toArray();
+            res.json(result);
+        });
+
         app.get("/api/my/companies", async (req, res) => {
             const query = {};
             if (req.query.recruiterId) {
                 query.recruiterId = req.query.recruiterId;
             }
-            const result = await companyCollection.findOne(query)
+            const result = await companyCollection.findOne(query);
             res.json(result);
         });
 
@@ -68,7 +81,7 @@ async function run() {
             const newCompany = {
                 ...company,
                 createdAt: new Date(),
-            }
+            };
             const result = await companyCollection.insertOne(newCompany);
             res.json(result);
         });
