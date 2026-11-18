@@ -30,6 +30,7 @@ async function run() {
         const companyCollection = db.collection("companies");
         const usersCollection = db.collection("user");
         const applicationsCollection = db.collection("applications");
+        const plansCollection = db.collection("plans");
 
         app.get("/api/users", async (req, res) => {
             const cursor = usersCollection.find().skip(2);
@@ -80,9 +81,9 @@ async function run() {
             if (req.query.jobId) {
                 query.jobId = req.query.jobId;
             }
-            const cursor = applicationsCollection.find(query)
+            const cursor = applicationsCollection.find(query);
             const result = await cursor.toArray();
-            res.json(result)
+            res.json(result);
         });
 
         app.post("/api/applications", async (req, res) => {
@@ -93,6 +94,17 @@ async function run() {
             };
             const result = await applicationsCollection.insertOne(newApplication);
             res.json(result);
+        });
+
+        // Plans related APIs
+
+        app.get("/api/plans", async (req, res) => {
+            const query = {};
+            if (req.query.plan_id) {
+                query.id = req.query.plan_id;
+            }
+            const result = await plansCollection.findOne(query);
+            res.json(result)
         });
 
         // Company related APIs
