@@ -17,8 +17,20 @@ const logger = (req, res, next)=>{
     next()
 }
 
+// middleware
 const verifyToken = (req, res, next)=>{
-    console.log(req.headers);
+    // console.log(req.headers);
+    const authHeader = req.headers?.authorization
+    if(!authHeader){
+        return res.status(401).json({message: "Unauthorized access"})
+    }
+
+    const token = authHeader.split(" ")[1]
+    // console.log(token);
+    if(!token){
+        return res.status(401).json({message: "Unauthorized access"})
+    }
+
     next()
 }
 
@@ -150,7 +162,7 @@ async function run() {
             res.json(result);
         }); */
         // inefficient way to join/ aggregate collection
-        app.get("/api/companies", async (req, res) => {
+        app.get("/api/companies", verifyToken, async (req, res) => {
             const cursor = companyCollection.find();
             const companies = await cursor.toArray();
 
