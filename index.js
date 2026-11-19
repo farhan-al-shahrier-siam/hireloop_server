@@ -61,9 +61,23 @@ async function run() {
             req.user = user;
             next();
         };
-
+        // checks if the caller is seeker
+        // must use before verifyToken midleware
         const verifySeeker = async (req, res, next) => {
             if (req.user?.role !== "seeker") {
+                return res.status(403).json({ message: "Forbidden access." });
+            }
+            next();
+        };
+
+        const verifyRecruiter = async (req, res, next) => {
+            if (req.user?.role !== "recruiter") {
+                return res.status(403).json({ message: "Forbidden access." });
+            }
+            next();
+        };
+        const verifyAdmin = async (req, res, next) => {
+            if (req.user?.role !== "admin") {
                 return res.status(403).json({ message: "Forbidden access." });
             }
             next();
@@ -97,7 +111,7 @@ async function run() {
             res.json(result);
         });
 
-        app.post("/api/jobs", async (req, res) => {
+        app.post("/api/jobs", verifyToken, verifyRecruiter, async (req, res) => {
             const job = req.body;
             const newJob = {
                 ...job,
@@ -179,6 +193,7 @@ async function run() {
             const result = await cursor.toArray();
             res.json(result);
         }); */
+        
         // inefficient way to join/ aggregate collection
         app.get("/api/companies", verifyToken, async (req, res) => {
             const cursor = companyCollection.find();
@@ -213,7 +228,7 @@ async function run() {
             res.json(result);
         });
 
-        app.patch("/api/companies/:id", verifyToken, async (req, res) => {
+        app.patch("/api/companies/:id", verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const updatedCompany = req.body;
             const filter = {
