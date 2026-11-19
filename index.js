@@ -133,10 +133,24 @@ async function run() {
 
         // Company related APIs
 
-        app.get("/api/companies", async (req, res) => {
+        /* app.get("/api/companies", async (req, res) => {
             const cursor = companyCollection.find();
             const result = await cursor.toArray();
             res.json(result);
+        }); */
+        // inefficient way to join/ aggregate collection
+        app.get("/api/companies", async (req, res) => {
+            const cursor = companyCollection.find();
+            const companies = await cursor.toArray();
+
+            for (const company of companies) {
+                const filter = {
+                    companyId: company._id.toString(),
+                };
+                const jobCount = await jobsCollection.countDocuments(filter);
+                company.jobCount = jobCount;
+            }
+            res.json(companies);
         });
 
         app.get("/api/my/companies", async (req, res) => {
