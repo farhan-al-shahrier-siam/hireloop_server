@@ -11,29 +11,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Middleware 
-const logger = (req, res, next)=>{
-    console.log("Logger middleware logged");
-    next()
-}
-
-// middleware
-const verifyToken = (req, res, next)=>{
-    // console.log(req.headers);
-    const authHeader = req.headers?.authorization
-    if(!authHeader){
-        return res.status(401).json({message: "Unauthorized access"})
-    }
-
-    const token = authHeader.split(" ")[1]
-    // console.log(token);
-    if(!token){
-        return res.status(401).json({message: "Unauthorized access"})
-    }
-
-    next()
-}
-
 const uri = process.env.MONGODB_CONNECTION_URI;
 
 const client = new MongoClient(uri, {
@@ -55,6 +32,42 @@ async function run() {
         const applicationsCollection = db.collection("applications");
         const plansCollection = db.collection("plans");
         const subscriptionCollection = db.collection("subscriptions");
+        const sessionCollection = db.collection("session");
+
+        // middleware verification related
+        const verifyToken = async (req, res, next) => {
+            // console.log(req.headers);
+            const authHeader = req.headers?.authorization;
+            if (!authHeader) {
+                return res.status(401).json({ message: "Unauthorized access." });
+            }
+
+            const token = authHeader.split(" ")[1];
+            // console.log(token);
+            if (!token) {
+                return res.status(401).json({ message: "Unauthorized access." });
+            }
+
+            const query = { token: token };
+            const session = await sessionCollection.findOne(query);
+            // console.log(session);
+            const userId = session.userId;
+
+            const userQuery = { _id: userId };
+
+            const user = await usersCollection.findOne(userQuery);
+            // console.log(user);
+
+            req.user = user;
+            next();
+        };
+
+        const verifySeeker = async (req, res, next) => {
+            if (req.user?.role !== "seeker") {
+                return res.status(403).json({ message: "Forbidden access." });
+            }
+            next();
+        };
 
         app.get("/api/users", async (req, res) => {
             const cursor = usersCollection.find().skip(2);
@@ -96,10 +109,15 @@ async function run() {
 
         // applications related APIs
 
-        app.get("/api/applications", async (req, res) => {
+        app.get("/api/applications", verifyToken, verifySeeker, async (req, res) => {
             const query = {};
             if (req.query.applicantId) {
                 query.applicantId = req.query.applicantId;
+
+                // check whether asking for user information or someone else
+                if (req.user._id.toString() !== req.query.applicantId) {
+                    return res.status(403).json({ message: "Forbidden access." });
+                }
             }
 
             if (req.query.jobId) {
@@ -195,7 +213,7 @@ async function run() {
             res.json(result);
         });
 
-        app.patch("/api/companies/:id", logger, verifyToken, async (req, res) => {
+        app.patch("/api/companies/:id", verifyToken, async (req, res) => {
             const id = req.params.id;
             const updatedCompany = req.body;
             const filter = {
