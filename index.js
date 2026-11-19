@@ -11,6 +11,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Middleware 
+const logger = (req, res, next)=>{
+    console.log("Logger middleware logged");
+    next()
+}
+
+const verifyToken = (req, res, next)=>{
+    console.log(req.headers);
+    next()
+}
+
 const uri = process.env.MONGODB_CONNECTION_URI;
 
 const client = new MongoClient(uri, {
@@ -172,7 +183,7 @@ async function run() {
             res.json(result);
         });
 
-        app.patch("/api/companies/:id", async (req, res) => {
+        app.patch("/api/companies/:id", logger, verifyToken, async (req, res) => {
             const id = req.params.id;
             const updatedCompany = req.body;
             const filter = {
