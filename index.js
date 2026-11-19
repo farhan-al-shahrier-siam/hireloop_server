@@ -50,13 +50,21 @@ async function run() {
 
             const query = { token: token };
             const session = await sessionCollection.findOne(query);
+
             // console.log(session);
+            if (!session) {
+                return res.status(401).json({ message: "Unauthorized access." });
+            }
+
             const userId = session.userId;
 
             const userQuery = { _id: userId };
 
             const user = await usersCollection.findOne(userQuery);
             // console.log(user);
+            if (!user) {
+                return res.status(401).json({ message: "Unauthorized access." });
+            }
 
             req.user = user;
             next();
@@ -83,12 +91,7 @@ async function run() {
             next();
         };
 
-        app.get("/api/users", async (req, res) => {
-            const cursor = usersCollection.find().skip(2);
-            const result = await cursor.toArray();
-            res.json(result);
-        });
-
+        // Jobs related APIs
         app.get("/api/jobs", async (req, res) => {
             const query = {};
             if (req.query.companyId) {
